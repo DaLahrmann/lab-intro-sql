@@ -329,9 +329,17 @@ group by c1.customer_id,c2.customer_id
 having count(i1.film_id)>3;
 
 -- Question 5.9
-select *
-from  sakila.film_actor fa
+select  f.film_id, f.title, acc.first_name, acc.last_name, acc.number_of_roles
+from 
+(select fa.actor_id, a.first_name, a.last_name, count(fa.film_id) as 'number_of_roles'
+from sakila.film_actor fa
 join sakila.actor a
 using (actor_id)
+group by actor_id) acc
+join sakila.film_actor fa
+using (actor_id)
 join sakila.film f
-using (film_id);
+using (film_id)
+group by film_id
+having acc.number_of_roles=max(acc.number_of_roles);
+ -- only works for a clear maximum
