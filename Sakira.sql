@@ -273,7 +273,8 @@ using (film_id)
 join sakila.category c 
 using (category_id)
 group by c.category_id
-order by sum(p.amount) desc;
+order by sum(p.amount) desc
+limit 5;
 
 -- Question 5.6
 -- first query counts the total amount copies in store 1
@@ -284,7 +285,7 @@ using (film_id)
 where i.store_id = 1 
 and f.title = 'Academy Dinosaur';
 
--- first query counts the amount of still rentaled copies in store 1
+-- second query counts the amount of still rentaled copies in store 1
 select count(*)
 from sakila.inventory i
 join sakila.film f
@@ -340,6 +341,170 @@ join sakila.film_actor fa
 using (actor_id)
 join sakila.film f
 using (film_id)
-group by film_id
-having acc.number_of_roles=max(acc.number_of_roles);
+group by f.film_id;#, f.title, acc.number_of_roles;
+#having acc.number_of_roles=max(acc.number_of_roles)
+#order by film_id, number_of_roles desc;
  -- only works for a clear maximum
+ 
+ -- Lab 3.01
+ 
+ -- Question 301.1
+ 
+ alter table sakila.staff
+ drop column picture;
+ 
+ -- Question 301.2
+ 
+-- a random address will be picked
+ 
+ insert into sakila.staff(first_name,last_name,store_id, address_id,username)
+ value
+ ('Tammy', 'Sanders', 2, 2,'Tammy');
+ 
+  -- Question 301.3
+  
+select * from sakila.rental;
+select customer_id from sakila.customer
+where first_name = 'CHARLOTTE' and last_name = 'HUNTER';
+-- customer_id =130
+
+select * from sakila.staff
+where store_id = 1;
+-- staff_id=1
+
+select * from sakila.inventory i
+join sakila.film f
+using (film_id)
+where f.title = 'Academy Dinosaur' 
+and store_id = 1;
+-- film has inventory_id 1,2,3,4
+
+select * from sakila.rental
+join sakila.inventory
+using (inventory_id)
+where film_id=1 and store_id=1;
+-- all copies are stored
+
+select * from sakila.rental;
+
+insert into sakila.rental(inventory_id,staff_id,customer_id, rental_date)
+ value
+ (1 , 1, 130, CURRENT_TIMESTAMP );
+ 
+--  Lab 3.02
+
+-- Question 302.1
+select count(*) 
+from sakila.inventory
+join sakila.film 
+using (film_id)
+where title = 'Hunchback Impossible';
+
+-- Question 302.2
+select * 
+from sakila.film
+where length>(
+	select avg(length) 
+	from sakila.film);
+
+-- Question 302.3
+select * from sakila.actor
+where actor_id in (
+	select actor_id from sakila.film_actor
+    where film_id = (
+		select film_id from sakila.film
+		where title = 'Alone Trip'));
+
+-- Question 302.4
+
+select * from sakila.film
+where film_id in (
+	select film_id from sakila.film_category
+    where category_id =(
+		select category_id
+        from sakila.category
+		where name = 'Family'));
+
+-- Question 302.5
+-- join
+select first_name,
+	   last_name,
+       email
+from sakila.customer
+join sakila.address
+using (address_id) 
+join sakila.city 
+using (city_id)
+join sakila.country 
+using (country_id)
+where country = 'Canada';
+
+-- subques
+select first_name, last_name, email 
+from sakila.customer
+where address_id in(
+	select address_id
+	from sakila.address 
+	where city_id in (
+		select city_id
+		from sakila.city
+		where country_id = (
+			select country_id
+			from sakila.country
+			where country = 'Canada')));
+
+-- Question 302.6
+select *
+from sakila.film
+where film_id in (
+	select film_id
+	from sakila.film_actor
+	where actor_id = (
+		select actor_id
+		from sakila.film_actor
+		group by actor_id
+		order by count(film_id) desc
+		limit 1
+        )
+	);
+
+-- Question 302.7
+select *
+from sakila.film
+where film_id in (
+	select film_id
+	from sakila.inventory
+	where inventory_id in (
+		select inventory_id 
+		from sakila.rental
+		where customer_id = (
+			select customer_id
+			from sakila.payment
+			group by customer_id
+			order by sum(amount) desc
+			limit 1
+		)
+	)
+);		    
+    
+-- Question 302.8
+-- use the mean of the total amount
+select * from sakila.customer
+where customer_id in (
+	select customer_id
+	from(
+		select 
+			customer_id,
+			sum(amount) as total_amount
+		from sakila.payment
+		group by customer_id
+		)sum1
+	where total_amount > (
+		select avg(total_amount)
+		from(
+			select sum(amount) as total_amount
+			from sakila.payment
+			group by customer_id
+		)sum2
+	)
+);			
